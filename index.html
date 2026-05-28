@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Free Claude Code — Dashboard</title>
+    <style>
+        :root {
+            --bg: #0d1117;
+            --surface: #161b22;
+            --surface-2: #1c2333;
+            --border: #30363d;
+            --text: #e6edf3;
+            --text-dim: #8b949e;
+            --accent: #58a6ff;
+            --green: #3fb950;
+            --orange: #d29922;
+            --red: #f85149;
+            --purple: #bc8cff;
+            --cyan: #39d2c0;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg); color: var(--text); line-height: 1.6;
+        }
+
+        /* Layout */
+        .app { display: flex; min-height: 100vh; }
+
+        /* Sidebar */
+        .sidebar {
+            width: 260px; background: var(--surface); border-right: 1px solid var(--border);
+            padding: 24px 0; flex-shrink: 0; position: sticky; top: 0; height: 100vh;
+            overflow-y: auto;
+        }
+        .sidebar .logo {
+            padding: 0 20px 24px; border-bottom: 1px solid var(--border); margin-bottom: 16px;
+        }
+        .sidebar .logo h1 { font-size: 18px; color: var(--accent); }
+        .sidebar .logo p { font-size: 12px; color: var(--text-dim); margin-top: 2px; }
+        .sidebar nav a {
+            display: flex; align-items: center; gap: 10px;
+            padding: 10px 20px; color: var(--text-dim); text-decoration: none;
+            font-size: 14px; transition: all .15s;
+        }
+        .sidebar nav a:hover { background: var(--surface-2); color: var(--text); }
+        .sidebar nav a.active { background: var(--surface-2); color: var(--accent); border-right: 2px solid var(--accent); }
+
+        /* Main */
+        .main { flex: 1; padding: 32px; max-width: 1200px; }
+
+        /* Header */
+        .header { margin-bottom: 32px; }
+        .header h2 { font-size: 24px; font-weight: 600; }
+        .header p { color: var(--text-dim); font-size: 14px; margin-top: 4px; }
+
+        /* Stats grid */
+        .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 32px; }
+        .stat-card {
+            background: var(--surface); border: 1px solid var(--border); border-radius: 8px;
+            padding: 20px; transition: border-color .15s;
+        }
+        .stat-card:hover { border-color: var(--accent); }
+        .stat-card .label { font-size: 12px; color: var(--text-dim); text-transform: uppercase; letter-spacing: .5px; }
+        .stat-card .value { font-size: 28px; font-weight: 700; margin-top: 4px; }
+        .stat-card .sub { font-size: 12px; color: var(--green); margin-top: 2px; }
+
+        /* Cards grid */
+        .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; margin-bottom: 32px; }
+        .card {
+            background: var(--surface); border: 1px solid var(--border); border-radius: 8px;
+            padding: 24px; transition: border-color .15s;
+        }
+        .card:hover { border-color: var(--accent); }
+        .card h3 { font-size: 15px; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+        .card p, .card li { font-size: 13px; color: var(--text-dim); line-height: 1.7; }
+        .card ul { list-style: none; padding: 0; }
+        .card ul li { padding: 6px 0; border-bottom: 1px solid var(--border); }
+        .card ul li:last-child { border-bottom: none; }
+        .card ul li::before { content: "›"; color: var(--accent); margin-right: 8px; font-weight: 700; }
+
+        /* Badge */
+        .badge {
+            display: inline-block; padding: 2px 8px; border-radius: 12px;
+            font-size: 11px; font-weight: 600;
+        }
+        .badge-green { background: rgba(63,185,80,.15); color: var(--green); }
+        .badge-orange { background: rgba(210,153,34,.15); color: var(--orange); }
+        .badge-red { background: rgba(248,81,73,.15); color: var(--red); }
+        .badge-purple { background: rgba(188,140,255,.15); color: var(--purple); }
+
+        /* Providers grid */
+        .providers { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; margin: 16px 0; }
+        .provider-chip {
+            background: var(--surface-2); border: 1px solid var(--border); border-radius: 6px;
+            padding: 10px 14px; font-size: 12px; text-align: center; color: var(--text-dim);
+            transition: all .15s;
+        }
+        .provider-chip:hover { border-color: var(--accent); color: var(--text); }
+
+        /* Timeline */
+        .timeline { position: relative; padding-left: 24px; }
+        .timeline::before {
+            content: ''; position: absolute; left: 8px; top: 4px; bottom: 4px;
+            width: 2px; background: var(--border);
+        }
+        .timeline-item { position: relative; padding: 8px 0 16px; }
+        .timeline-item::before {
+            content: ''; position: absolute; left: -20px; top: 14px;
+            width: 10px; height: 10px; border-radius: 50%; background: var(--accent);
+            border: 2px solid var(--bg);
+        }
+        .timeline-item .date { font-size: 11px; color: var(--text-dim); }
+        .timeline-item .desc { font-size: 13px; margin-top: 2px; }
+        .timeline-item .desc a { color: var(--accent); text-decoration: none; }
+        .timeline-item .desc a:hover { text-decoration: underline; }
+
+        /* Config box */
+        .config-box {
+            background: #0d1117; border: 1px solid var(--border); border-radius: 6px;
+            padding: 16px; font-family: 'Cascadia Code', 'Fira Code', monospace;
+            font-size: 13px; line-height: 1.7; overflow-x: auto; margin: 12px 0;
+        }
+        .config-box .comment { color: #8b949e; }
+        .config-box .key { color: #79c0ff; }
+        .config-box .val { color: #a5d6ff; }
+        .config-box .eq { color: #c9d1d9; }
+
+        .btn {
+            display: inline-block; padding: 10px 20px; border-radius: 6px;
+            font-size: 13px; font-weight: 600; text-decoration: none; cursor: pointer;
+            transition: all .15s; border: none;
+        }
+        .btn-primary { background: var(--accent); color: #fff; }
+        .btn-primary:hover { background: #4c9eff; }
+        .btn-outline {
+            background: transparent; color: var(--accent); border: 1px solid var(--accent);
+        }
+        .btn-outline:hover { background: rgba(88,166,255,.1); }
+
+        .section-title { font-size: 16px; font-weight: 600; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+
+        @media (max-width: 768px) {
+            .app { flex-direction: column; }
+            .sidebar { width: 100%; height: auto; position: static; padding: 16px 0; }
+            .sidebar nav { display: flex; flex-wrap: wrap; padding: 0 16px; }
+            .sidebar nav a { padding: 8px 12px; font-size: 13px; }
+            .main { padding: 20px; }
+            .stats { grid-template-columns: repeat(2, 1fr); }
+        }
+
+        /* Footer */
+        .footer { margin-top: 48px; padding-top: 24px; border-top: 1px solid var(--border); text-align: center; font-size: 12px; color: var(--text-dim); }
+        .footer a { color: var(--accent); text-decoration: none; }
+    </style>
+</head>
+<body>
+<div class="app">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <div class="logo">
+            <h1>⬡ Free Claude Code</h1>
+            <p>Anthropic API Proxy</p>
+        </div>
+        <nav>
+            <a href="#overview" class="active">📊 Overview</a>
+            <a href="#providers">🔌 Providers</a>
+            <a href="#fixes">🔧 Bug Fixes</a>
+            <a href="#config">⚙️ Configuration</a>
+            <a href="#quickstart">🚀 Quick Start</a>
+            <a href="#prs">📬 Pull Requests</a>
+        </nav>
+    </aside>
+
+    <!-- Main -->
+    <div class="main">
+        <!-- Header -->
+        <div class="header" id="overview">
+            <h2>📊 Dashboard</h2>
+            <p>Free Claude Code — route Anthropic Messages API traffic to any LLM provider</p>
+        </div>
+
+        <!-- Stats -->
+        <div class="stats">
+            <div class="stat-card">
+                <div class="label">Total Files</div>
+                <div class="value">302</div>
+                <div class="sub">Python modules</div>
+            </div>
+            <div class="stat-card">
+                <div class="label">Tests</div>
+                <div class="value">1,429</div>
+                <div class="sub">all passing ✓</div>
+            </div>
+            <div class="stat-card">
+                <div class="label">Providers</div>
+                <div class="value">17</div>
+                <div class="sub">supported backends</div>
+            </div>
+            <div class="stat-card">
+                <div class="label">Bug Fixes</div>
+                <div class="value">7</div>
+                <div class="sub">PRs submitted</div>
+            </div>
+        </div>
+
+        <!-- PR Status -->
+        <div class="cards">
+            <div class="card">
+                <h3>📬 Pull Request Status</h3>
+                <ul>
+                    <li><a href="https://github.com/Alishahryar1/free-claude-code/pull/590" target="_blank">#590</a> <span class="badge badge-green">open</span> — Python 2 except syntax</li>
+                    <li><a href="https://github.com/Alishahryar1/free-claude-code/pull/591" target="_blank">#591</a> <span class="badge badge-green">open</span> — .gitignore server.py exclusion</li>
+                    <li><a href="https://github.com/Alishahryar1/free-claude-code/pull/592" target="_blank">#592</a> <span class="badge badge-green">open</span> — Invalid default model</li>
+                    <li><a href="https://github.com/Alishahryar1/free-claude-code/pull/593" target="_blank">#593</a> <span class="badge badge-green">open</span> — resolve_model ordering</li>
+                    <li><a href="https://github.com/Alishahryar1/free-claude-code/pull/594" target="_blank">#594</a> <span class="badge badge-green">open</span> — Log redaction</li>
+                    <li><a href="https://github.com/Alishahryar1/free-claude-code/pull/595" target="_blank">#595</a> <span class="badge badge-green">open</span> — Config defaults mismatch</li>
+                    <li><a href="https://github.com/Alishahryar1/free-claude-code/pull/596" target="_blank">#596</a> <span class="badge badge-green">open</span> — Test updates</li>
+                </ul>
+            </div>
+            <div class="card">
+                <h3>🔧 Bug Severity</h3>
+                <ul>
+                    <li><span class="badge badge-red">CRITICAL</span> — except syntax (GeneratorExit not caught)</li>
+                    <li><span class="badge badge-orange">HIGH</span> — .gitignore excludes server.py</li>
+                    <li><span class="badge badge-orange">HIGH</span> — Log redaction bypass (x-api-key)</li>
+                    <li><span class="badge badge-orange">HIGH</span> — Config defaults 40x off</li>
+                    <li><span class="badge badge-green">MEDIUM</span> — Non-existent default model</li>
+                    <li><span class="badge badge-purple">LOW</span> — resolve_model ordering edge case</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Providers -->
+        <h3 class="section-title" id="providers">🔌 Supported Providers</h3>
+        <div class="providers">
+            <div class="provider-chip">NVIDIA NIM</div>
+            <div class="provider-chip">OpenRouter</div>
+            <div class="provider-chip">DeepSeek</div>
+            <div class="provider-chip">Google Gemini</div>
+            <div class="provider-chip">Mistral</div>
+            <div class="provider-chip">Mistral Codestral</div>
+            <div class="provider-chip">OpenCode Zen</div>
+            <div class="provider-chip">OpenCode Go</div>
+            <div class="provider-chip">Wafer</div>
+            <div class="provider-chip">Kimi (Moonshot)</div>
+            <div class="provider-chip">Cerebras</div>
+            <div class="provider-chip">Groq</div>
+            <div class="provider-chip">Fireworks AI</div>
+            <div class="provider-chip">Z.ai</div>
+            <div class="provider-chip">LM Studio</div>
+            <div class="provider-chip">llama.cpp</div>
+            <div class="provider-chip">Ollama</div>
+        </div>
+
+        <!-- Bug Fixes Timeline -->
+        <h3 class="section-title" id="fixes">🔧 Bug Fixes</h3>
+        <div class="card" style="margin-bottom: 24px;">
+            <div class="timeline">
+                <div class="timeline-item">
+                    <div class="date">Commit 80b6244</div>
+                    <div class="desc"><strong>CRITICAL</strong> — <a href="https://github.com/jalexiscv/free-claude-code/commit/80b6244" target="_blank">Python 2 except syntax</a> — `except A, GeneratorExit:` catches only A. Split into separate clauses.</div>
+                </div>
+                <div class="timeline-item">
+                    <div class="date">Commit d0e5daf</div>
+                    <div class="desc"><strong>HIGH</strong> — <a href="https://github.com/jalexiscv/free-claude-code/commit/d0e5daf" target="_blank">.gitignore excludes server.py</a> — `server.*` glob matched the main entry point.</div>
+                </div>
+                <div class="timeline-item">
+                    <div class="date">Commit d38f000</div>
+                    <div class="desc"><strong>MEDIUM</strong> — <a href="https://github.com/jalexiscv/free-claude-code/commit/d38f000" target="_blank">Invalid default model</a> — `z-ai/glm4.7` doesn't exist on NVIDIA NIM.</div>
+                </div>
+                <div class="timeline-item">
+                    <div class="date">Commit be99034</div>
+                    <div class="desc"><strong>LOW</strong> — <a href="https://github.com/jalexiscv/free-claude-code/commit/be99034" target="_blank">resolve_model ordering</a> — haiku checked before sonnet.</div>
+                </div>
+                <div class="timeline-item">
+                    <div class="date">Commit 37786c7</div>
+                    <div class="desc"><strong>HIGH</strong> — <a href="https://github.com/jalexiscv/free-claude-code/commit/37786c7" target="_blank">Log redaction incomplete</a> — x-api-key headers not redacted.</div>
+                </div>
+                <div class="timeline-item">
+                    <div class="date">Commit f900547</div>
+                    <div class="desc"><strong>HIGH</strong> — <a href="https://github.com/jalexiscv/free-claude-code/commit/f900547" target="_blank">Config defaults mismatch</a> — rate limit 40x off, timeouts too low.</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Configuration -->
+        <h3 class="section-title" id="config">⚙️ Configuration</h3>
+        <div class="cards">
+            <div class="card">
+                <h3>📝 .env Example</h3>
+                <div class="config-box">
+                    <span class="comment"># DeepSeek (recommended)</span><br>
+                    <span class="key">DEEPSEEK_API_KEY</span><span class="eq">=</span><span class="val">"sk-..."</span><br>
+                    <span class="key">MODEL</span><span class="eq">=</span><span class="val">"deepseek/deepseek-v4-flash"</span><br><br>
+                    <span class="comment"># Or NVIDIA NIM</span><br>
+                    <span class="key">NVIDIA_NIM_API_KEY</span><span class="eq">=</span><span class="val">"nvapi-..."</span><br>
+                    <span class="key">MODEL</span><span class="eq">=</span><span class="val">"nvidia_nim/nvidia/nemotron-3-super-120b-a12b"</span><br><br>
+                    <span class="key">ANTHROPIC_AUTH_TOKEN</span><span class="eq">=</span><span class="val">"freecc"</span>
+                </div>
+            </div>
+            <div class="card">
+                <h3>▶️ Run Server</h3>
+                <div class="config-box">
+                    <span class="comment"># Start the proxy</span><br>
+                    <span class="key">uv run uvicorn server:app</span><br>
+                    <span class="key">  --host 0.0.0.0 --port 8082</span>
+                </div>
+                <p style="margin-top: 12px;">Then connect Claude Code:</p>
+                <div class="config-box">
+                    <span class="key">claude --proxy-url http://localhost:8082</span><br>
+                    <span class="key">  --api-key freecc</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Start -->
+        <h3 class="section-title" id="quickstart">🚀 Quick Start</h3>
+        <div class="cards">
+            <div class="card">
+                <h3>1️⃣ Clone & Install</h3>
+                <div class="config-box">
+                    <span class="key">git clone https://github.com/jalexiscv/free-claude-code.git</span><br>
+                    <span class="key">cd free-claude-code</span><br>
+                    <span class="key">uv sync</span>
+                </div>
+            </div>
+            <div class="card">
+                <h3>2️⃣ Configure</h3>
+                <p>Copy <code>.env.example</code> to <code>.env</code>, edit your API key and model:</p>
+                <div class="config-box">
+                    <span class="key">cp .env.example .env</span><br>
+                    <span class="key">nano .env</span>
+                </div>
+            </div>
+            <div class="card">
+                <h3>3️⃣ Run</h3>
+                <div class="config-box">
+                    <span class="key">uv run uvicorn server:app --host 0.0.0.0 --port 8082</span>
+                </div>
+            </div>
+            <div class="card">
+                <h3>4️⃣ Connect Claude Code</h3>
+                <div class="config-box">
+                    <span class="key">claude --proxy-url http://localhost:8082 --api-key freecc</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Links -->
+        <h3 class="section-title" id="prs">🔗 Links</h3>
+        <div class="cards">
+            <div class="card">
+                <h3>📦 Repositories</h3>
+                <ul>
+                    <li><a href="https://github.com/jalexiscv/free-claude-code" target="_blank">jalexiscv/free-claude-code</a> — this fork</li>
+                    <li><a href="https://github.com/Alishahryar1/free-claude-code" target="_blank">Alishahryar1/free-claude-code</a> — upstream original</li>
+                </ul>
+            </div>
+            <div class="card">
+                <h3>📋 Issues</h3>
+                <ul>
+                    <li><a href="https://github.com/jalexiscv/free-claude-code/issues" target="_blank">jalexiscv issues</a></li>
+                    <li><a href="https://github.com/Alishahryar1/free-claude-code/issues" target="_blank">Upstream issues</a></li>
+                </ul>
+            </div>
+            <div class="card">
+                <h3>📬 Pull Requests</h3>
+                <ul>
+                    <li><a href="https://github.com/Alishahryar1/free-claude-code/pulls?q=is%3Apr+author%3Ajalexiscv" target="_blank">PRs by jalexiscv</a></li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="footer">
+            <p>Free Claude Code · <a href="https://github.com/jalexiscv/free-claude-code" target="_blank">jalexiscv/free-claude-code</a> · MIT License</p>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Smooth scroll for sidebar nav
+    document.querySelectorAll('.sidebar nav a').forEach(link => {
+        link.addEventListener('click', e => {
+            e.preventDefault();
+            document.querySelectorAll('.sidebar nav a').forEach(a => a.classList.remove('active'));
+            link.classList.add('active');
+            const target = document.querySelector(link.getAttribute('href'));
+            if (target) target.scrollIntoView({ behavior: 'smooth' });
+        });
+    });
+
+    // Highlight active section on scroll
+    const observer = new IntersectionObserver(entries => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                document.querySelectorAll('.sidebar nav a').forEach(a => {
+                    a.classList.toggle('active', a.getAttribute('href') === '#' + entry.target.id);
+                });
+            }
+        });
+    }, { rootMargin: '-80px 0px -50% 0px' });
+    document.querySelectorAll('[id]').forEach(el => observer.observe(el));
+</script>
+</body>
+</html>
