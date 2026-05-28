@@ -109,6 +109,18 @@ def _extract_raw_error_text(e: Exception) -> str:
     Tries ``e.body`` (OpenAI SDK body), ``e.message``, and ``str(e)`` in
     order of usefulness. Returns the first non-empty result.
     """
+    upstream_body = getattr(e, "upstream_body", None)
+    if isinstance(upstream_body, str) and upstream_body.strip():
+        return upstream_body.strip()
+
+    if isinstance(e, httpx.HTTPStatusError):
+        try:
+            body_text = e.response.text
+        except Exception:
+            body_text = ""
+        if body_text and body_text.strip():
+            return body_text.strip()
+
     if isinstance(e, openai.APIError):
         body = getattr(e, "body", None)
         if isinstance(body, dict) and "error" in body:
